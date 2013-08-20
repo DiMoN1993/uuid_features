@@ -21,7 +21,7 @@ function uuid_node_features_export_options() {
     $results = db_query($query);
     foreach ($results as $node) {
       $options[$node->uuid] = t('@type: @title', array(
-        '@type'  => $types[$node->type],
+        '@type' => $types[$node->type],
         '@title' => $node->title,
       ));
     }
@@ -186,7 +186,6 @@ function uuid_node_features_rebuild($module) {
       );
       drupal_alter('uuid_features_rebuild', $node, $data);
       $node = node_submit($node);
-
       node_save($node);
     }
   }

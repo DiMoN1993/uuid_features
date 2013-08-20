@@ -115,13 +115,12 @@ function uuid_term_features_export_render($module = 'foo', $data) {
 
     // Blacklist of term properties.
     $blacklist = array('vid', 'tid', 'vocabulary_machine_name');
-    $export = (object) clone $term;
+    $export = (object) clone ((object) $term);
     foreach ($blacklist as $key) {
       unset($export->$key);
     }
 
     $export->vocabulary = $term->vocabulary_machine_name;
-
     // Get the UUID of the term's parent terms.
     $parents = taxonomy_get_parents($tid);
     foreach ($parents as $parent) {
