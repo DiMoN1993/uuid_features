@@ -105,8 +105,10 @@ function uuid_entity_features_export_render($entity_type, $module, $data) {
     $export = clone $entity;
 
     $black_list = module_invoke_all('uuid_features_entity_render_blacklist');
-    foreach ($black_list[$entity_type] as $list) {
-      unset($export->$list);
+    if(isset($black_list[$entity_type])) {
+      foreach ($black_list[$entity_type] as $list) {
+        unset($export->$list);
+      }
     }
 
     // The hook_alter signature is:
@@ -115,15 +117,18 @@ function uuid_entity_features_export_render($entity_type, $module, $data) {
 
     $data = array(
       'module' => $module,
-      'bundle' => $entity_type,
-      'type' => $entity->type,
+      'bundle' => $entity_type
     );
     drupal_alter('uuid_features_export_render', $export, $entity, $data);
 
-    if ($entity_type == 'user') {
-      $export->pictures->fid = entity_get_uuid_by_id($entity_type, $export->pictures->fid);
-      if (($export->pictures->uid) != 0 && ($export->pictures->uid) != 1) {
-        $export->pictures->uid = entity_get_uuid_by_id($entity_type, $export->pictures->uid);
+    if ($entity_type == 'user' && isset($export->picture)) {
+      dpm($export);
+      dpm($export->picture);
+      dpm($export->picture->fid);
+      dpm($export->picture->uid);
+      $export->picture->fid = entity_get_uuid_by_id($entity_type, $export->picture->fid);
+      if (($export->picture->uid) != 0 && ($export->picture->uid) != 1) {
+        $export->picture->uid = entity_get_uuid_by_id($entity_type, $export->picture->uid);
       }
     }
     $code[] = "  \${$entity_type}s[] = " . features_var_export($export) . ';';
