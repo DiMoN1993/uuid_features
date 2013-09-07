@@ -103,32 +103,47 @@ function uuid_entity_features_export_render($entity_type, $module, $data) {
 
     $entity = $entities[$id];
     $export = clone $entity;
-
+    dpm($export);
+    dpm($entity_type);
     $black_list = module_invoke_all('uuid_features_entity_render_blacklist');
-    if(isset($black_list[$entity_type])) {
+    if (isset($black_list[$entity_type])) {
       foreach ($black_list[$entity_type] as $list) {
         unset($export->$list);
       }
     }
 
-    // The hook_alter signature is:
-    // hook_uuid_node_features_export_render_alter(&$export, $node, $module);
     drupal_alter("uuid_{$entity_type}_features_export_render", $export, $entity, $module);
 
     $data = array(
       'module' => $module,
       'bundle' => $entity_type
     );
-    drupal_alter('uuid_features_export_render', $export, $entity, $data);
-
+    if ($entity_type == 'file') {
+      $real_path = drupal_realpath($export->uri);
+      $export->data = file_exists($real_path) ? base64_encode(file_get_contents($real_path)) : '';
+    }
+    elseif ($entity_type == 'user') {
+      $data['type'] = 'user';
+      drupal_alter('uuid_features_export_render', $export, $entity, $data);
+    }
+    elseif ($entity_type == 'node') {
+      $data['type'] = $export->type;
+      drupal_alter('uuid_features_export_render', $export, $entity, $data);
+    }
+    elseif ($entity_type == 'taxonomy_term') {
+/*      $data['type'] = $entity->vocabulary_machine_name;*/
+      $data['object'] = $export;
+      drupal_alter('uuid_features_export', $export, $entity, $data);
+    }
+    elseif ($entity_type == 'taxonomy_vocabulary') {
+      continue;
+    }
     if ($entity_type == 'user' && isset($export->picture)) {
-      dpm($export);
-      dpm($export->picture);
-      dpm($export->picture->fid);
-      dpm($export->picture->uid);
-      $export->picture->fid = entity_get_uuid_by_id($entity_type, $export->picture->fid);
+      $fid = entity_get_uuid_by_id($entity_type, $export->picture->fid);
+      $export->picture->fid = current($fid);
       if (($export->picture->uid) != 0 && ($export->picture->uid) != 1) {
-        $export->picture->uid = entity_get_uuid_by_id($entity_type, $export->picture->uid);
+        $uid = entity_get_uuid_by_id($entity_type, $export->picture->uid);
+        $export->picture->uid = current($uid);
       }
     }
     $code[] = "  \${$entity_type}s[] = " . features_var_export($export) . ';';
