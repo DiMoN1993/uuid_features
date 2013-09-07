@@ -136,7 +136,7 @@ function uuid_entity_features_export_render($entity_type, $module, $data) {
       drupal_alter('uuid_features_export', $export, $entity, $data);
     }
     elseif ($entity_type == 'taxonomy_vocabulary') {
-      continue;
+      continue; //a temporary stop-gap. later me change that.
     }
     if ($entity_type == 'user' && isset($export->picture)) {
       $fid = entity_get_uuid_by_id($entity_type, $export->picture->fid);
