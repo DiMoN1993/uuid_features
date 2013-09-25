@@ -28,6 +28,10 @@ foreach ($entity_info as $entity_type => $type_info) {
     $function_code = "function uuid_{$entity_type}_features_export_render(\$module, \$data, \$module_name = '') {return uuid_entity_features_export_render(\"$entity_type\", \$module, \$data, \$module_name);  }";
     eval($function_code);
   }
+  if (!function_exists("uuid_{$entity_type}_features_rebuild")) {
+    $function_code = "function uuid_{$entity_type}_features_rebuild(\$module) {return uuid_entity_features_rebuild(\"$entity_type\", \$module);  }";
+    eval($function_code);
+  }
 }
 
 function uuid_entity_features_export_options($entity_type) {
@@ -103,8 +107,6 @@ function uuid_entity_features_export_render($entity_type, $module, $data) {
 
     $entity = $entities[$id];
     $export = clone $entity;
-    dpm($export);
-    dpm($entity_type);
     $black_list = module_invoke_all('uuid_features_entity_render_blacklist');
     if (isset($black_list[$entity_type])) {
       foreach ($black_list[$entity_type] as $list) {
@@ -119,11 +121,12 @@ function uuid_entity_features_export_render($entity_type, $module, $data) {
       'bundle' => $entity_type
     );
     if ($entity_type == 'file') {
+      $data['type'] = $entity_type;
       $real_path = drupal_realpath($export->uri);
       $export->data = file_exists($real_path) ? base64_encode(file_get_contents($real_path)) : '';
     }
     elseif ($entity_type == 'user') {
-      $data['type'] = 'user';
+      $data['type'] = $entity_type;
       drupal_alter('uuid_features_export_render', $export, $entity, $data);
     }
     elseif ($entity_type == 'node') {
@@ -131,20 +134,17 @@ function uuid_entity_features_export_render($entity_type, $module, $data) {
       drupal_alter('uuid_features_export_render', $export, $entity, $data);
     }
     elseif ($entity_type == 'taxonomy_term') {
-/*      $data['type'] = $entity->vocabulary_machine_name;*/
       $data['object'] = $export;
+      $data['type'] = $entity_type;
       drupal_alter('uuid_features_export', $export, $entity, $data);
     }
     elseif ($entity_type == 'taxonomy_vocabulary') {
       continue; //a temporary stop-gap. later me change that.
     }
     if ($entity_type == 'user' && isset($export->picture)) {
-      $fid = entity_get_uuid_by_id($entity_type, $export->picture->fid);
+      $fid = entity_get_uuid_by_id('file', array($export->picture->fid));
+      $export->picture = new stdClass();
       $export->picture->fid = current($fid);
-      if (($export->picture->uid) != 0 && ($export->picture->uid) != 1) {
-        $uid = entity_get_uuid_by_id($entity_type, $export->picture->uid);
-        $export->picture->uid = current($uid);
-      }
     }
     $code[] = "  \${$entity_type}s[] = " . features_var_export($export) . ';';
   }
@@ -154,6 +154,13 @@ function uuid_entity_features_export_render($entity_type, $module, $data) {
   return array("uuid_features_default_$entity_type" => $code);
 }
 
+/**
+ * Implements hook_features_rebuild().
+ * Rebuilds entities based on UUID from code defaults.
+ */
+function uuid_features_entity_rebuild($entity_type, $module) {
+
+}
 /**
  * Implements hook_uuid_features_entity_render_blacklist()
  */
